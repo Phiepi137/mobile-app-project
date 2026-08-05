@@ -1,0 +1,74 @@
+/* src/pages/Login.css */
+.login-page {
+  --ion-background-color: #ffffff;
+}
+
+.login-content::part(background) {
+  /* Simulamos el fondo del estadio en la parte inferior */
+  background: url('https://images.unsplash.com/photo-1518605368461-1ee7e53f1a31?q=80&w=800&auto=format&fit=crop') no-repeat bottom center;
+  background-size: 100% 40%;
+  opacity: 0.15; /* Opacidad baja para no saturar el texto */
+}
+
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  height: 100%;
+  padding: 40px 20px;
+  position: relative;
+  z-index: 10;
+}
+
+.logo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 40px;
+  color: #0b1c4a;
+}
+
+.logo-icon {
+  font-size: 80px;
+  margin-bottom: 10px;
+}
+
+.logo-title {
+  font-size: 20px;
+  font-weight: 800;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.form-container {
+  width: 100%;
+  max-width: 400px;
+  background: white;
+  padding: 20px;
+  border-radius: 15px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.input-label {
+  font-weight: bold;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 5px;
+  margin-left: 5px;
+  display: block;
+}
+
+.custom-input {
+  --background: #f4f5f8;
+  --padding-start: 10px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+.login-button {
+  --background: #0b1c4a;
+  --border-radius: 25px;
+  margin-top: 20px;
+  font-weight: bold;
+}
