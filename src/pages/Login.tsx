@@ -12,6 +12,8 @@ import {
 } from '@ionic/react';
 import { personOutline, lockClosedOutline, trophyOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../firebaseConfig';
 import './Login.css';
 
 const Login: React.FC = () => {
@@ -21,7 +23,6 @@ const Login: React.FC = () => {
   const history = useHistory();
 
   const handleLogin = async () => {
-    // Validar que los campos no estén vacíos antes de leer el archivo
     if (!usuario.trim() || !contrasena.trim()) {
       presentToast({
         message: 'Por favor, ingresa usuario y contraseña.',
@@ -33,48 +34,34 @@ const Login: React.FC = () => {
     }
 
     try {
-      // 1. Leer el archivo usuarios.txt desde la carpeta public
-      const response = await fetch('/usuarios.txt');
-      const text = await response.text();
+      // 1. Apuntamos a la colección "usuarios" en Firestore
+      const usuariosRef = collection(db, 'usuarios');
+      
+      // 2. Creamos una consulta (query) buscando coincidencia de credenciales
+      const q = query(
+        usuariosRef, 
+        where('username', '==', usuario.trim()),
+        where('password', '==', contrasena.trim())
+      );
 
-      // 2. Parsear el archivo línea por línea
-      const lineas = text.split('\n');
-      let usuarioAutenticado = null;
+      // 3. Ejecutamos la consulta
+      const querySnapshot = await getDocs(q);
 
-      for (const linea of lineas) {
-        // Ignorar líneas vacías
-        if (!linea.trim()) continue;
+      if (!querySnapshot.empty) {
+        // Si hay resultados, obtenemos el primer documento (usuario)
+        const userDoc = querySnapshot.docs[0];
+        const usuarioAutenticado = userDoc.data();
 
-        // Extraer los datos según la estructura definida
-        const [id, username, password, nombreCompleto, tipo] = linea.split(',');
-
-        // 3. Verificar si hay coincidencia
-        if (username.trim() === usuario.trim() && password.trim() === contrasena.trim()) {
-          usuarioAutenticado = {
-            id: id.trim(),
-            username: username.trim(),
-            nombreCompleto: nombreCompleto.trim(),
-            tipo: tipo.trim()
-          };
-          break; // Detener el bucle si encontramos al usuario
-        }
-      }
-
-      // 4. Manejar el resultado de la autenticación
-      if (usuarioAutenticado) {
-        // Limpiar los campos por seguridad
         setUsuario('');
         setContrasena('');
 
-        // Redirigir dependiendo del tipo de usuario
         if (usuarioAutenticado.tipo === 'Participante') {
+          localStorage.setItem('usuarioLogueado', usuarioAutenticado.username);
           history.push('/participante');
         } else if (usuarioAutenticado.tipo === 'Administrador') {
-          // Nota: Aún no creamos esta ruta en App.tsx, lo haremos pronto
           history.push('/administrador');
         }
       } else {
-        // Requerimiento: Mensaje mediante Toast indicando error de credenciales
         presentToast({
           message: 'El usuario o la contraseña son incorrectos.',
           duration: 3000,
@@ -83,9 +70,9 @@ const Login: React.FC = () => {
         });
       }
     } catch (error) {
-      console.error('Error al leer el archivo de usuarios:', error);
+      console.error('Error al consultar Firestore:', error);
       presentToast({
-        message: 'Problemas técnicos. Estamos resolviendo.',
+        message: 'Problemas de conexión con la base de datos.',
         duration: 3000,
         color: 'danger',
         position: 'bottom'
