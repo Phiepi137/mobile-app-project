@@ -1,63 +1,64 @@
 // src/pages/AdminMenu.tsx
 import React from 'react';
 import { 
-  IonContent, 
-  IonPage, 
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonList,
-  IonItem,
-  IonLabel,
-  IonIcon,
-  IonText
+  IonContent, IonHeader, IonPage, IonTitle, IonToolbar, 
+  IonButton, IonIcon, IonText, IonCard, IonCardContent 
 } from '@ionic/react';
-import { footballOutline, syncOutline, logOutOutline, personCircleOutline } from 'ionicons/icons';
+import { settingsOutline, logOutOutline, footballOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 
 const AdminMenu: React.FC = () => {
   const history = useHistory();
 
-  const handleLogout = () => {
-    // Al salir, la aplicación debe regresar al login (o terminar, según el requerimiento)
-    history.replace('/login');
+  const cerrarSesion = () => {
+    localStorage.removeItem('usuarioLogueado');
+    history.push('/login');
   };
 
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar color="primary">
-          <IonTitle>Menú Administrador</IonTitle>
+          <IonTitle>Panel de Control</IonTitle>
         </IonToolbar>
       </IonHeader>
-      
-      <IonContent className="ion-padding">
+
+      <IonContent className="ion-padding" style={{ '--background': '#f4f5f8' }}>
         
-        {/* Encabezado con el nombre del administrador solicitado */}
         <div style={{ textAlign: 'center', margin: '30px 0' }}>
-          <IonIcon icon={personCircleOutline} style={{ fontSize: '80px', color: '#0b1c4a' }} />
-          <IonText style={{ display: 'block', fontSize: '22px', fontWeight: 'bold' }}>
-            Carlos Administrador
+          <IonIcon icon={settingsOutline} style={{ fontSize: '60px', color: '#428cff' }} />
+          <IonText color="dark" style={{ display: 'block', fontSize: '20px', fontWeight: 'bold', marginTop: '10px' }}>
+            Bienvenido, Administrador
           </IonText>
-          <IonText color="medium">Administrador General</IonText>
         </div>
 
-        <IonList style={{ borderRadius: '10px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
-          <IonItem button onClick={() => history.push('/administrador/partidos')} detail>
-            <IonIcon slot="start" icon={footballOutline} color="primary" />
-            <IonLabel>Administrar partidos</IonLabel>
-          </IonItem>
-          
-          <IonItem button onClick={() => history.push('/administrador/puntajes')} detail>
-            <IonIcon slot="start" icon={syncOutline} color="success" />
-            <IonLabel>Actualizar puntajes</IonLabel>
-          </IonItem>
-          
-          <IonItem button onClick={handleLogout} lines="none">
-            <IonIcon slot="start" icon={logOutOutline} color="danger" />
-            <IonLabel color="danger">Salir</IonLabel>
-          </IonItem>
-        </IonList>
+        <IonCard style={{ borderRadius: '15px', marginBottom: '20px' }}>
+          <IonCardContent>
+            <IonButton 
+              expand="block" 
+              size="large"
+              onClick={() => history.push('/administrador/partidos')}
+              style={{ '--border-radius': '10px' }}
+            >
+              <IonIcon slot="start" icon={footballOutline} />
+              Administrar Partidos
+            </IonButton>
+            <IonText color="medium" style={{ fontSize: '12px', display: 'block', textAlign: 'center', marginTop: '10px' }}>
+              Crea partidos, ingresa resultados y calcula los puntos del torneo.
+            </IonText>
+          </IonCardContent>
+        </IonCard>
+
+        <IonButton 
+          expand="block" 
+          fill="clear" 
+          color="danger" 
+          onClick={cerrarSesion}
+          style={{ marginTop: '20px' }}
+        >
+          <IonIcon slot="start" icon={logOutOutline} />
+          Cerrar Sesión
+        </IonButton>
 
       </IonContent>
     </IonPage>

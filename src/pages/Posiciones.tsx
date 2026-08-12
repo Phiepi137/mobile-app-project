@@ -1,137 +1,142 @@
 // src/pages/Posiciones.tsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  IonContent, 
-  IonPage, 
-  IonGrid,
-  IonRow,
-  IonCol,
-  IonText,
-  IonIcon,
-  IonButton,
-  IonAvatar
+  IonContent, IonHeader, IonPage, IonTitle, IonToolbar, 
+  IonList, IonItem, IonLabel, IonBadge, IonAvatar, IonText, IonIcon 
 } from '@ionic/react';
-import { trophyOutline, arrowBackOutline, personCircleOutline } from 'ionicons/icons';
-import { useHistory } from 'react-router-dom';
+import { trophyOutline } from 'ionicons/icons';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../firebaseConfig';
 
-// Datos de prueba (mock) para simular el archivo participantes.txt y usuarios.txt
-const mockParticipantes = [
-  { id: 1, nombre: 'Maria Gonzales', puntos: 125 },
-  { id: 2, nombre: 'Juan Pérez', puntos: 110 },
-  { id: 3, nombre: 'Carlos Ramirez', puntos: 100 },
-  { id: 4, nombre: 'Ana Torres', puntos: 85 },
-  { id: 5, nombre: 'Luis Fernandez', puntos: 70 },
-  { id: 6, nombre: 'Sofia Martinez', puntos: 65 },
-  { id: 7, nombre: 'Diego López', puntos: 50 },
-  { id: 8, nombre: 'Andres Silva', puntos: 40 },
-  { id: 9, nombre: 'Pablo Ruiz', puntos: 25 },
-  { id: 10, nombre: 'Valeria Romero', puntos: 30 },
-  { id: 11, nombre: 'Alberto Silva', puntos: 40 } // Agregado para probar el desempate alfabético
-];
+// Interfaz para estructurar los datos del ranking
+interface Posicion {
+  id: string;
+  nombre: string;
+  puntos: number;
+}
 
 const Posiciones: React.FC = () => {
-  const history = useHistory();
+  const [posiciones, setPosiciones] = useState<Posicion[]>([]);
 
-  // Lógica de ordenamiento: equivalente a la interfaz Comparable en Java
-  // 1. Mayor a menor puntaje. 2. Orden alfabético si hay empate.
-  const participantesOrdenados = [...mockParticipantes].sort((a, b) => {
-    if (b.puntos !== a.puntos) {
-      return b.puntos - a.puntos;
+  const cargarPosiciones = async () => {
+    try {
+      // 1. Obtener todos los usuarios que son de tipo 'Participante'
+      const qUsuarios = query(collection(db, 'usuarios'), where('tipo', '==', 'Participante'));
+      const usuariosSnap = await getDocs(qUsuarios);
+
+      // Crear un diccionario de usuarios inicializado con 0 puntos
+      const mapaUsuarios: Record<string, Posicion> = {};
+      usuariosSnap.forEach(doc => {
+        const data = doc.data();
+        mapaUsuarios[data.username] = {
+          id: data.username,
+          nombre: data.nombreCompleto || data.username,
+          puntos: 0
+        };
+      });
+
+      // 2. Obtener todos los pronósticos de la base de datos
+      const pronosticosSnap = await getDocs(collection(db, 'pronosticos'));
+      
+      // 3. Sumar los puntos obtenidos al usuario correspondiente
+      pronosticosSnap.forEach(doc => {
+        const data = doc.data();
+        // Solo sumar si el partido ya finalizó y tiene puntos calculados
+        if (data.puntosObtenidos !== null && data.puntosObtenidos !== undefined) {
+          if (mapaUsuarios[data.usuarioId]) {
+            mapaUsuarios[data.usuarioId].puntos += data.puntosObtenidos;
+          }
+        }
+      });
+
+      // 4. Convertir el diccionario a un arreglo y ordenarlo
+      const listaPosiciones = Object.values(mapaUsuarios);
+      listaPosiciones.sort((a, b) => {
+        if (b.puntos !== a.puntos) {
+          return b.puntos - a.puntos; // Ordenar de mayor a menor puntaje
+        }
+        // Desempate: Orden alfabético si tienen los mismos puntos
+        return a.nombre.localeCompare(b.nombre); 
+      });
+
+      setPosiciones(listaPosiciones);
+    } catch (error) {
+      console.error("Error al cargar posiciones:", error);
     }
-    return a.nombre.localeCompare(b.nombre);
-  });
+  };
+
+  // Cargar los datos automáticamente al abrir la pantalla
+  useEffect(() => {
+    cargarPosiciones();
+  }, []);
+
+  // Función para asignar medallas visuales a los 3 primeros lugares
+  const getMedalla = (index: number) => {
+    if (index === 0) return '🥇';
+    if (index === 1) return '🥈';
+    if (index === 2) return '🥉';
+    return <IonText color="medium">{index + 1}</IonText>;
+  };
 
   return (
     <IonPage>
-      {/* Contenedor principal con scroll habilitado (ScrollView) */}
-      <IonContent fullscreen style={{ '--background': '#f4f5f8' }}>
+      <IonHeader>
+        <IonToolbar color="tertiary">
+          <IonTitle>Tabla de Posiciones</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+
+      <IonContent fullscreen className="ion-padding" style={{ '--background': '#f4f5f8' }}>
         
-        {/* Encabezado personalizado superior (Perfil del usuario) */}
-        <div style={{ 
-          background: '#0b1c4a', 
-          padding: '40px 20px 20px 20px', 
-          borderBottomLeftRadius: '30px', 
-          borderBottomRightRadius: '30px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          color: 'white',
-          marginBottom: '20px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <IonIcon icon={personCircleOutline} style={{ fontSize: '50px' }} />
-            <div>
-              <IonText style={{ fontSize: '12px', opacity: 0.8, display: 'block' }}>Bienvenido,</IonText>
-              <IonText style={{ fontSize: '18px', fontWeight: 'bold', display: 'block' }}>Juan Pérez</IonText>
-              <IonText style={{ fontSize: '12px', color: '#81c784' }}>Participante</IonText>
-            </div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <IonIcon icon={trophyOutline} style={{ fontSize: '30px' }} />
-            <IonText style={{ fontSize: '10px', display: 'block', fontWeight: 'bold' }}>MUNDIAL<br/>2026</IonText>
-          </div>
+        <div style={{ textAlign: 'center', margin: '20px 0' }}>
+          <IonIcon icon={trophyOutline} style={{ fontSize: '50px', color: '#ffc409' }} />
+          <IonText color="dark" style={{ display: 'block', fontSize: '18px', fontWeight: 'bold', marginTop: '10px' }}>
+            Ranking Global
+          </IonText>
+          <IonText color="medium" style={{ fontSize: '12px' }}>
+            Los mejores pronosticadores del torneo
+          </IonText>
         </div>
 
-        {/* Contenedor de la Tabla */}
-        <div style={{ padding: '0 20px' }}>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
-            <IonIcon icon={trophyOutline} style={{ fontSize: '24px', color: '#0b1c4a' }} />
-            <div>
-              <IonText style={{ fontSize: '18px', fontWeight: 'bold', color: '#0b1c4a', display: 'block' }}>Tabla de posiciones</IonText>
-              <IonText color="medium" style={{ fontSize: '12px' }}>De los participantes del Mundial 2026</IonText>
-            </div>
-          </div>
+        {posiciones.length === 0 && (
+          <IonText color="medium" style={{ textAlign: 'center', display: 'block', marginTop: '30px' }}>
+            Aún no hay participantes registrados o no se han calculado puntos.
+          </IonText>
+        )}
 
-          {/* Tabla construida con IonGrid */}
-          <div style={{ background: 'white', borderRadius: '15px', overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
-            
-            {/* Cabecera de la tabla */}
-            <IonGrid className="ion-no-padding">
-              <IonRow style={{ background: '#0b1c4a', color: 'white', padding: '10px 0', fontWeight: 'bold', fontSize: '14px' }}>
-                <IonCol size="2" className="ion-text-center">Pos.</IonCol>
-                <IonCol size="7">Participante</IonCol>
-                <IonCol size="3" className="ion-text-center">Puntos</IonCol>
-              </IonRow>
+        <IonList style={{ background: 'transparent' }}>
+          {posiciones.map((usuario, index) => (
+            <IonItem 
+              key={usuario.id} 
+              lines="none"
+              style={{ 
+                '--border-radius': '10px', 
+                marginBottom: '10px', 
+                '--background': 'white', 
+                boxShadow: '0 2px 5px rgba(0,0,0,0.05)' 
+              }} 
+            >
+              <div slot="start" style={{ width: '30px', textAlign: 'center', fontWeight: 'bold', fontSize: '18px' }}>
+                {getMedalla(index)}
+              </div>
+              
+              {/* Inicial del nombre del usuario */}
+              <IonAvatar slot="start" style={{ width: '40px', height: '40px', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#666' }}>
+                {usuario.nombre.charAt(0).toUpperCase()}
+              </IonAvatar>
+              
+              <IonLabel>
+                <h2 style={{ fontWeight: 'bold', fontSize: '16px' }}>{usuario.nombre}</h2>
+                <p>@{usuario.id}</p>
+              </IonLabel>
+              
+              <IonBadge slot="end" color="success" style={{ fontSize: '16px', padding: '8px 12px', borderRadius: '8px' }}>
+                {usuario.puntos} pts
+              </IonBadge>
+            </IonItem>
+          ))}
+        </IonList>
 
-              {/* Filas de la tabla renderizadas dinámicamente */}
-              {participantesOrdenados.map((participante, index) => (
-                <IonRow 
-                  key={participante.id} 
-                  style={{ 
-                    borderBottom: '1px solid #eee', 
-                    padding: '12px 0', 
-                    fontSize: '14px',
-                    alignItems: 'center'
-                  }}
-                >
-                  <IonCol size="2" className="ion-text-center">
-                    <IonText color="medium">{index + 1}</IonText>
-                  </IonCol>
-                  <IonCol size="7">
-                    <IonText color="dark">{participante.nombre}</IonText>
-                  </IonCol>
-                  <IonCol size="3" className="ion-text-center">
-                    <IonText style={{ fontWeight: 'bold', color: '#0b1c4a' }}>{participante.puntos}</IonText>
-                  </IonCol>
-                </IonRow>
-              ))}
-            </IonGrid>
-          </div>
-
-          {/* Botón Volver (Solicitado en el diseño del PDF) */}
-          <IonButton 
-            expand="block" 
-            fill="outline" 
-            color="dark" 
-            style={{ marginTop: '20px', marginBottom: '30px', '--border-radius': '10px' }}
-            onClick={() => history.push('/participante/pronosticos')}
-          >
-            <IonIcon slot="start" icon={arrowBackOutline} />
-            Volver
-          </IonButton>
-
-        </div>
       </IonContent>
     </IonPage>
   );
